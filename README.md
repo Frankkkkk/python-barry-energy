@@ -23,7 +23,7 @@ For example, in order to get actual France's spot prices, you may do the followi
  datetime.datetime(2021, 2, 17, 21, 0, tzinfo=datetime.timezone.utc): 0.04758,
  datetime.datetime(2021, 2, 17, 22, 0, tzinfo=datetime.timezone.utc): 0.04499}
 ```
-The dates indicate the start of the delivery period. It is assumed that each delivery period is one hour long.
+The dates indicate the start of the delivery period. It is assumed that each delivery period is one hour long. In our case, prices are in €/kWh
 
 The values returned by the API should be the same values than [EPEX spot](https://www.epexspot.com/en/market-data)
 
