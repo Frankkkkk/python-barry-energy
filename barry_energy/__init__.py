@@ -17,25 +17,51 @@ class BarryEnergyAPI:
     def __init__(self, api_token: str):
         self.api_token = api_token
 
-    def spotPrices(self, market_zone: PriceArea, date_start: datetime.datetime, date_end: datetime.datetime):
-        ''' Returns the hourly spot price on market_zone for the
-        given dates.
-        Warning: dates are assumed UTC'''
-
+    @staticmethod
+    def _strftime(date) -> str:
         api_date_format = '%Y-%m-%dT%H:%M:%SZ'
+        return date.strftime(api_date_format)
 
-        params = [market_zone.name,
-                  date_start.strftime(api_date_format), date_end.strftime(api_date_format)]
-        r = self._execute('co.getbarry.api.v1.OpenApiController.getPrice', params)
-
+    @staticmethod
+    def _parse_time_series(vals):
         ret = {}
-        for val in r:
+        for val in vals:
             sdate = val['start']
             sdate = sdate.replace("Z", "+00:00")  # fromisofromat doesn't know about Z
             date = datetime.datetime.fromisoformat(sdate)
 
             ret[date] = val['value']
         return ret
+        pass
+
+
+    def spotPrices(self, market_zone: PriceArea, date_start: datetime.datetime, date_end: datetime.datetime):
+        ''' Returns the hourly spot price on market_zone for the
+        given dates.
+        Warning: dates are assumed UTC'''
+
+
+        params = [market_zone.name,
+                  BarryEnergyAPI._strftime(date_start), BarryEnergyAPI._strftime(date_end)]
+        r = self._execute('co.getbarry.api.v1.OpenApiController.getPrice', params)
+        return BarryEnergyAPI._parse_time_series(r)
+
+
+    def CO2Intensity(self, market_zone: PriceArea, date_start: datetime.datetime, date_end: datetime.datetime):
+        ''' Returns the hourly CO₂ intensity of energy on market_zone for the
+        given dates.
+        Output is gCO₂-eq/kWh'''
+
+        params = [market_zone.name.split('_')[-1], BarryEnergyAPI._strftime(date_start), BarryEnergyAPI._strftime(date_end)]
+        # valid market zones: FR1, DK1, DK2
+        r = self._execute('co.getbarry.megatron.controller.ElectricityStatsController.listCarbonIntensityForRegion', params)
+        return BarryEnergyAPI._parse_time_series(r)
+
+
+    def meteringPoints(self):
+        r = self._execute('co.getbarry.api.v1.OpenApiController.getMeteringPoints', [])
+        return r
+
 
     def _do_request(self, headers, body):
         try:
@@ -60,6 +86,7 @@ class BarryEnergyAPI:
 
         r = self._do_request(headers, payload)
         if 'error' in r:
+            print(r)
             msg = r['error']['data']['message']
             raise BarryEnergyException(msg)
 
