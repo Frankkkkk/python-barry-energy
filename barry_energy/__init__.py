@@ -37,6 +37,11 @@ class BarryEnergyAPI:
             ret[date] = val['value']
         return ret
 
+    @property
+    def meteringPoints(self):
+        ''' Returns the metering points linked to the contract '''
+        return self._execute('co.getbarry.api.v1.OpenApiController.getMeteringPoints', [])
+
     def _do_request(self, headers, body):
         try:
             r = requests.post(self.APIEndpoint, headers=headers, json=body)
