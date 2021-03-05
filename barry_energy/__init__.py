@@ -42,6 +42,56 @@ class BarryEnergyAPI:
         ''' Returns the metering points linked to the contract '''
         return self._execute('co.getbarry.api.v1.OpenApiController.getMeteringPoints', [])
 
+
+    def meteringPointConsumption(self, date_start: datetime.datetime, date_end: datetime.datetime, mpid=None):
+        ''' Returns the consumption (in kWh per hour) during date_start and date_end. If mpid is None,
+        returns the consumption of the MPID/MPAN. Else returns the consumption of the specified mpid '''
+        api_date_format = '%Y-%m-%dT%H:%M:%SZ'
+
+        if abs(date_start - date_end) < datetime.timedelta(days=1):
+            raise BarryEnergyException('date range must be at least one day')
+
+        params = [date_start.strftime(api_date_format), date_end.strftime(api_date_format)]
+        r = self._execute('co.getbarry.api.v1.OpenApiController.getAggregatedConsumption', params)
+
+        mpids = {}
+        for val in r:
+            the_mpid = val['mpid']
+            quantity = val['quantity']
+            sdate = val['start']
+            sdate = sdate.replace("Z", "+00:00")  # fromisofromat doesn't know about Z
+            date = datetime.datetime.fromisoformat(sdate)
+
+            if the_mpid not in mpids:
+                mpids[the_mpid] = {}
+            mpids[the_mpid][date] = quantity
+
+        if mpid is None:
+            return mpids
+        else:
+            return mpids[mpid]
+
+
+    @property
+    def yesterday_start(self) -> datetime.datetime:
+        ''' Returns the date of the start of yesterday '''
+        now = datetime.datetime.now()
+        return now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+
+    @property
+    def yesterday_end(self) -> datetime.datetime:
+        ''' Returns the date of the end of yesterday '''
+        yday = self.yesterday_start
+        return yday + self.one_day
+
+
+    @property
+    def one_day(self) -> datetime.timedelta:
+        ''' Returns a timedelta of 24 hours '''
+        return datetime.timedelta(hours=24)
+
+
     def _do_request(self, headers, body):
         try:
             r = requests.post(self.APIEndpoint, headers=headers, json=body)
