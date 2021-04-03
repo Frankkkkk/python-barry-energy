@@ -10,7 +10,7 @@ def read(fname):
 
 setup(
     name = "python-barry-energy",
-    version = "0.0.2",
+    version = "0.0.3",
     author = "Frank Villaro-Dixon",
     author_email = "frank@villaro-dixon.eu",
     description = ("Interfaces with Barry Energy's API"),
@@ -20,7 +20,7 @@ setup(
     packages=['barry_energy'],
     long_description=open("README.md", "r").read(),
     long_description_content_type="text/markdown",
-    install_requires=[],
+    install_requires=['requests'],
     classifiers=[
         "Development Status :: 3 - Alpha",
         "Topic :: Utilities",
