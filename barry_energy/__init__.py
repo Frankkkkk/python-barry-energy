@@ -1,5 +1,7 @@
 import enum
-import datetime
+from datetime import (
+    tzinfo, timezone, datetime, timedelta
+    )
 import json
 import requests
 
@@ -17,7 +19,7 @@ class BarryEnergyAPI:
     def __init__(self, api_token: str):
         self.api_token = api_token
 
-    def spotPrices(self, market_zone: PriceArea, date_start: datetime.datetime, date_end: datetime.datetime):
+    def spotPrices(self, market_zone: PriceArea, date_start: datetime, date_end: datetime):
         ''' Returns the hourly spot price on market_zone for the
         given dates.
         Warning: dates are assumed UTC'''
@@ -32,7 +34,7 @@ class BarryEnergyAPI:
         for val in r:
             sdate = val['start']
             sdate = sdate.replace("Z", "+00:00")  # fromisofromat doesn't know about Z
-            date = datetime.datetime.fromisoformat(sdate)
+            date = datetime.fromisoformat(sdate)
 
             ret[date] = val['value']
         return ret
@@ -43,12 +45,12 @@ class BarryEnergyAPI:
         return self._execute('co.getbarry.api.v1.OpenApiController.getMeteringPoints', [])
 
 
-    def meteringPointConsumption(self, date_start: datetime.datetime, date_end: datetime.datetime, mpid=None):
+    def meteringPointConsumption(self, date_start: datetime, date_end: datetime, mpid=None):
         ''' Returns the consumption (in kWh per hour) during date_start and date_end. If mpid is None,
         returns the consumption of the MPID/MPAN. Else returns the consumption of the specified mpid '''
         api_date_format = '%Y-%m-%dT%H:%M:%SZ'
 
-        if abs(date_start - date_end) < datetime.timedelta(days=1):
+        if abs(date_start - date_end) < timedelta(days=1):
             raise BarryEnergyException('date range must be at least one day')
 
         params = [date_start.strftime(api_date_format), date_end.strftime(api_date_format)]
@@ -60,7 +62,7 @@ class BarryEnergyAPI:
             quantity = val['quantity']
             sdate = val['start']
             sdate = sdate.replace("Z", "+00:00")  # fromisofromat doesn't know about Z
-            date = datetime.datetime.fromisoformat(sdate)
+            date = datetime.fromisoformat(sdate)
 
             if the_mpid not in mpids:
                 mpids[the_mpid] = {}
@@ -71,26 +73,52 @@ class BarryEnergyAPI:
         else:
             return mpids[mpid]
 
+    def totalKwhPrice(self, date_start: datetime, date_end: datetime, mpid: int):
+        ''' Returns the total KwH price (inc. grid fees, tarrifs, subscription and spot price) for a metering point.'''
+        
+        api_date_format = '%Y-%m-%dT%H:%M:%SZ'
+
+        #Fix : Barry API is bugged. if time delta > 1 hour, it will sum the different price. set date_end to date_start + 1 hour.
+        date_start = self._troncate_hour(date_start)
+        date_end = date_start +timedelta(hours=1)
+        ####
+
+        params = [mpid,date_start.strftime(api_date_format), date_end.strftime(api_date_format)]
+        r = self._execute('co.getbarry.api.v1.OpenApiController.getTotalKwHPrice', params)
+
+        results = []
+
+        results.append({"start_date":date_start.astimezone(timezone.utc),
+            "price":r["value"],
+            "currency":r["currency"]})
+
+        return results
 
     @property
-    def yesterday_start(self) -> datetime.datetime:
+    def yesterday_start(self) -> datetime:
         ''' Returns the date of the start of yesterday '''
-        now = datetime.datetime.now()
+        now = datetime.utcnow()
         return now.replace(hour=0, minute=0, second=0, microsecond=0)
 
 
     @property
-    def yesterday_end(self) -> datetime.datetime:
+    def yesterday_end(self) -> datetime:
         ''' Returns the date of the end of yesterday '''
         yday = self.yesterday_start
         return yday + self.one_day
 
-
     @property
-    def one_day(self) -> datetime.timedelta:
+    def now(self) -> datetime:
+        ''' Return the date troncated at hour'''
+        return datetime.utcnow().replace(second=0, microsecond=0, minute=0)
+            
+    @property
+    def one_day(self) -> timedelta:
         ''' Returns a timedelta of 24 hours '''
-        return datetime.timedelta(hours=24)
+        return timedelta(hours=24)
 
+    def _troncate_hour(self,time:datetime):
+        return time.replace(second=0, microsecond=0, minute=0)
 
     def _do_request(self, headers, body):
         try:
