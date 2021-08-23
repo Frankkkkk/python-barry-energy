@@ -1,6 +1,6 @@
 import enum
 from datetime import (
-    tzinfo, timezone, datetime, timedelta
+    timezone, datetime, timedelta
     )
 import json
 import requests
@@ -95,22 +95,30 @@ class BarryEnergyAPI:
         return results
 
     @property
+    def today_start(self) -> datetime:
+        ''' Returns the date of the start of today'''
+        now = datetime.now() \
+                .replace(hour=0, minute=0, second=0, microsecond=0) \
+                .astimezone(timezone.utc)
+        return now
+
+    @property
     def yesterday_start(self) -> datetime:
         ''' Returns the date of the start of yesterday '''
-        now = datetime.utcnow()
-        return now.replace(hour=0, minute=0, second=0, microsecond=0)
-
-
+        return self.today_start - self.one_day
+        
     @property
     def yesterday_end(self) -> datetime:
         ''' Returns the date of the end of yesterday '''
-        yday = self.yesterday_start
-        return yday + self.one_day
+        ''' (kept for retro-compatibility)           '''
+        return self.today_start
 
     @property
     def now(self) -> datetime:
         ''' Return the date troncated at hour'''
-        return datetime.utcnow().replace(second=0, microsecond=0, minute=0)
+        now = datetime.utcnow() \
+                .replace(second=0, microsecond=0, minute=0)
+        return now
             
     @property
     def one_day(self) -> timedelta:
