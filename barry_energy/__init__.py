@@ -73,7 +73,7 @@ class BarryEnergyAPI:
         else:
             return mpids[mpid]
 
-    def totalKwhPrice(self, date_start: datetime, date_end: datetime, mpid: int):
+    def totalkWhPrice(self, date_start: datetime, date_end: datetime, mpid: int):
         ''' Returns the total KwH price (inc. grid fees, tarrifs, subscription and spot price) for a metering point.'''
         
         api_date_format = '%Y-%m-%dT%H:%M:%SZ'
