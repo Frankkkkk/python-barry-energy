@@ -10,7 +10,7 @@ def read(fname):
 
 setup(
     name = "python-barry-energy",
-    version = "0.0.3",
+    version = "0.0.4",
     author = "Frank Villaro-Dixon",
     author_email = "frank@villaro-dixon.eu",
     description = ("Interfaces with Barry Energy's API"),
