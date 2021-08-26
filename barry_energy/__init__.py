@@ -1,15 +1,19 @@
 import enum
-import datetime
-import json
+from datetime import (
+    timezone, datetime, timedelta
+    )
 import requests
+
 
 class PriceArea(enum.Enum):
     DK_NORDPOOL_SPOT_DK1 = "DK_NORDPOOL_SPOT_DK1"
     DK_NORDPOOL_SPOT_DK2 = "DK_NORDPOOL_SPOT_DK2"
     FR_EPEX_SPOT_FR = "FR_EPEX_SPOT_FR"
 
+
 class BarryEnergyException(Exception):
     pass
+
 
 class BarryEnergyAPI:
     APIEndpoint = 'https://jsonrpc.barry.energy/json-rpc'
@@ -17,7 +21,7 @@ class BarryEnergyAPI:
     def __init__(self, api_token: str):
         self.api_token = api_token
 
-    def spotPrices(self, market_zone: PriceArea, date_start: datetime.datetime, date_end: datetime.datetime):
+    def spotPrices(self, market_zone: PriceArea, date_start: datetime, date_end: datetime):
         ''' Returns the hourly spot price on market_zone for the
         given dates.
         Warning: dates are assumed UTC'''
@@ -32,23 +36,37 @@ class BarryEnergyAPI:
         for val in r:
             sdate = val['start']
             sdate = sdate.replace("Z", "+00:00")  # fromisofromat doesn't know about Z
-            date = datetime.datetime.fromisoformat(sdate)
+            date = datetime.fromisoformat(sdate)
 
             ret[date] = val['value']
         return ret
+
+    def hourlykWhPrice(self, date: datetime, mpid: int) -> float:
+        ''' Returns the total kWh price (currency/kWh)
+            (incl. grid fees, tarrifs, subscription, and spot price) of a metering point and
+            a specific hour.'''
+
+        api_date_format = '%Y-%m-%dT%H:%M:%SZ'
+
+        # XXX FIXME: Barry API is bugged. if time delta > 1 hour, it will sum the different price. set date_end to date_start + 1 hour.
+        date_start = BarryEnergyAPI._truncate_hour(date)
+        date_end = date_start + timedelta(hours=1)
+
+        params = [mpid, date_start.strftime(api_date_format), date_end.strftime(api_date_format)]
+        r = self._execute('co.getbarry.api.v1.OpenApiController.getTotalKwHPrice', params)
+        return r['value']
 
     @property
     def meteringPoints(self):
         ''' Returns the metering points linked to the contract '''
         return self._execute('co.getbarry.api.v1.OpenApiController.getMeteringPoints', [])
 
-
-    def meteringPointConsumption(self, date_start: datetime.datetime, date_end: datetime.datetime, mpid=None):
+    def meteringPointConsumption(self, date_start: datetime, date_end: datetime, mpid=None):
         ''' Returns the consumption (in kWh per hour) during date_start and date_end. If mpid is None,
         returns the consumption of the MPID/MPAN. Else returns the consumption of the specified mpid '''
         api_date_format = '%Y-%m-%dT%H:%M:%SZ'
 
-        if abs(date_start - date_end) < datetime.timedelta(days=1):
+        if abs(date_start - date_end) < timedelta(days=1):
             raise BarryEnergyException('date range must be at least one day')
 
         params = [date_start.strftime(api_date_format), date_end.strftime(api_date_format)]
@@ -60,7 +78,7 @@ class BarryEnergyAPI:
             quantity = val['quantity']
             sdate = val['start']
             sdate = sdate.replace("Z", "+00:00")  # fromisofromat doesn't know about Z
-            date = datetime.datetime.fromisoformat(sdate)
+            date = datetime.fromisoformat(sdate)
 
             if the_mpid not in mpids:
                 mpids[the_mpid] = {}
@@ -71,26 +89,40 @@ class BarryEnergyAPI:
         else:
             return mpids[mpid]
 
+    @property
+    def today_start(self) -> datetime:
+        ''' Returns the date of the start of today'''
+        now = datetime.now() \
+            .replace(hour=0, minute=0, second=0, microsecond=0) \
+            .astimezone(timezone.utc)
+        return now
 
     @property
-    def yesterday_start(self) -> datetime.datetime:
+    def yesterday_start(self) -> datetime:
         ''' Returns the date of the start of yesterday '''
-        now = datetime.datetime.now()
-        return now.replace(hour=0, minute=0, second=0, microsecond=0)
-
+        return self.today_start - self.one_day
 
     @property
-    def yesterday_end(self) -> datetime.datetime:
+    def yesterday_end(self) -> datetime:
         ''' Returns the date of the end of yesterday '''
-        yday = self.yesterday_start
-        return yday + self.one_day
-
+        ''' (kept for retro-compatibility)           '''
+        return self.today_start
 
     @property
-    def one_day(self) -> datetime.timedelta:
-        ''' Returns a timedelta of 24 hours '''
-        return datetime.timedelta(hours=24)
+    def now(self) -> datetime:
+        ''' Return the date troncated at hour'''
+        now = datetime.utcnow() \
+            .replace(second=0, microsecond=0, minute=0)
+        return now
 
+    @property
+    def one_day(self) -> timedelta:
+        ''' Returns a timedelta of 24 hours '''
+        return timedelta(hours=24)
+
+    @staticmethod
+    def _truncate_hour(date: datetime):
+        return date.replace(second=0, microsecond=0, minute=0)
 
     def _do_request(self, headers, body):
         try:
@@ -119,4 +151,3 @@ class BarryEnergyAPI:
             raise BarryEnergyException(msg)
 
         return r['result']
-
