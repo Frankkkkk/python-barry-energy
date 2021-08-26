@@ -88,20 +88,30 @@ class BarryEnergyAPI:
         else:
             return mpids[mpid]
 
+    @property
+    def today_start(self) -> datetime.datetime:
+        ''' Returns the date of the start of today'''
+        now = datetime.datetime.now() \
+                .replace(hour=0, minute=0, second=0, microsecond=0) \
+                .astimezone(timezone.utc)
+        return now
 
     @property
     def yesterday_start(self) -> datetime.datetime:
         ''' Returns the date of the start of yesterday '''
-        now = datetime.datetime.now()
-        return now.replace(hour=0, minute=0, second=0, microsecond=0)
-
+        return self.today_start - self.one_day
 
     @property
     def yesterday_end(self) -> datetime.datetime:
         ''' Returns the date of the end of yesterday '''
-        yday = self.yesterday_start
-        return yday + self.one_day
+        return self.today_start
 
+    @property
+    def now(self) -> datetime.datetime:
+        ''' Return the now date truncated at the hour'''
+        now = datetime.utcnow() \
+                .replace(second=0, microsecond=0, minute=0)
+        return now
 
     @property
     def one_day(self) -> datetime.timedelta:

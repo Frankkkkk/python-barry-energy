@@ -71,11 +71,17 @@ class BarryEnergyAPI(builtins.object)
  |  one_day
  |      Returns a timedelta of 24 hours
  |  
- |  yesterday_end
+ |  yesterday_end (equivalent to today_start)
  |      Returns the date of the end of yesterday
  |  
  |  yesterday_start
  |      Returns the date of the start of yesterday
+ |
+ |  today_start (equivalent to yesterday_end)
+ |      Returns the date of the start of today
+ |
+ |  now
+ |      Return the curent (utc) time troncated at hour
  |  
  |  ----------------------------------------------------------------------
  ```
