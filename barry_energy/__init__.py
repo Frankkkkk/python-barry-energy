@@ -37,6 +37,23 @@ class BarryEnergyAPI:
             ret[date] = val['value']
         return ret
 
+
+    def hourlykWhPrice(self, date: datetime, mpid: int) -> float:
+        ''' Returns the total kWh price (currency/kWh)
+            (incl. grid fees, tarrifs, subscription, and spot price) of a metering point and
+            a specific hour.'''
+
+        api_date_format = '%Y-%m-%dT%H:%M:%SZ'
+
+        #XXX FIXME: Barry API is bugged. if time delta > 1 hour, it will sum the different price. set date_end to date_start + 1 hour.
+        date_start = BarryEnergyAPI._truncate_hour(date)
+        date_end = date_start + timedelta(hours=1)
+
+        params = [mpid, date_start.strftime(api_date_format), date_end.strftime(api_date_format)]
+        r = self._execute('co.getbarry.api.v1.OpenApiController.getTotalKwHPrice', params)
+        return r['value']
+
+
     @property
     def meteringPoints(self):
         ''' Returns the metering points linked to the contract '''
@@ -91,6 +108,9 @@ class BarryEnergyAPI:
         ''' Returns a timedelta of 24 hours '''
         return datetime.timedelta(hours=24)
 
+    @staticmethod
+    def _truncate_hour(date: datetime):
+        return date.replace(second=0, microsecond=0, minute=0)
 
     def _do_request(self, headers, body):
         try:

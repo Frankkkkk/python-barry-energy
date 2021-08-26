@@ -58,6 +58,10 @@ class BarryEnergyAPI(builtins.object)
  |      given dates.
  |      Warning: dates are assumed UTC
  |  
+ | hourlykWhPrice(self, date: datetime, mpid: int)
+ |      Returns the total kWh price (currency/kWh)
+ |      (incl. grid fees, tarrifs, subscription, and spot price) of a metering
+ |      point and a specific hour.
  |  ----------------------------------------------------------------------
  |  Readonly properties defined here:
  |  
