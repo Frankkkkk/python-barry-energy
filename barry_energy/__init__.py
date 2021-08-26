@@ -2,16 +2,18 @@ import enum
 from datetime import (
     timezone, datetime, timedelta
     )
-import json
 import requests
+
 
 class PriceArea(enum.Enum):
     DK_NORDPOOL_SPOT_DK1 = "DK_NORDPOOL_SPOT_DK1"
     DK_NORDPOOL_SPOT_DK2 = "DK_NORDPOOL_SPOT_DK2"
     FR_EPEX_SPOT_FR = "FR_EPEX_SPOT_FR"
 
+
 class BarryEnergyException(Exception):
     pass
+
 
 class BarryEnergyAPI:
     APIEndpoint = 'https://jsonrpc.barry.energy/json-rpc'
@@ -39,7 +41,6 @@ class BarryEnergyAPI:
             ret[date] = val['value']
         return ret
 
-
     def hourlykWhPrice(self, date: datetime, mpid: int) -> float:
         ''' Returns the total kWh price (currency/kWh)
             (incl. grid fees, tarrifs, subscription, and spot price) of a metering point and
@@ -47,7 +48,7 @@ class BarryEnergyAPI:
 
         api_date_format = '%Y-%m-%dT%H:%M:%SZ'
 
-        #XXX FIXME: Barry API is bugged. if time delta > 1 hour, it will sum the different price. set date_end to date_start + 1 hour.
+        # XXX FIXME: Barry API is bugged. if time delta > 1 hour, it will sum the different price. set date_end to date_start + 1 hour.
         date_start = BarryEnergyAPI._truncate_hour(date)
         date_end = date_start + timedelta(hours=1)
 
@@ -55,12 +56,10 @@ class BarryEnergyAPI:
         r = self._execute('co.getbarry.api.v1.OpenApiController.getTotalKwHPrice', params)
         return r['value']
 
-
     @property
     def meteringPoints(self):
         ''' Returns the metering points linked to the contract '''
         return self._execute('co.getbarry.api.v1.OpenApiController.getMeteringPoints', [])
-
 
     def meteringPointConsumption(self, date_start: datetime, date_end: datetime, mpid=None):
         ''' Returns the consumption (in kWh per hour) during date_start and date_end. If mpid is None,
@@ -94,8 +93,8 @@ class BarryEnergyAPI:
     def today_start(self) -> datetime:
         ''' Returns the date of the start of today'''
         now = datetime.now() \
-                .replace(hour=0, minute=0, second=0, microsecond=0) \
-                .astimezone(timezone.utc)
+            .replace(hour=0, minute=0, second=0, microsecond=0) \
+            .astimezone(timezone.utc)
         return now
 
     @property
@@ -113,7 +112,7 @@ class BarryEnergyAPI:
     def now(self) -> datetime:
         ''' Return the date troncated at hour'''
         now = datetime.utcnow() \
-                .replace(second=0, microsecond=0, minute=0)
+            .replace(second=0, microsecond=0, minute=0)
         return now
 
     @property
@@ -152,4 +151,3 @@ class BarryEnergyAPI:
             raise BarryEnergyException(msg)
 
         return r['result']
-
