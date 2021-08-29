@@ -56,6 +56,26 @@ class BarryEnergyAPI:
         r = self._execute('co.getbarry.api.v1.OpenApiController.getTotalKwHPrice', params)
         return r['value']
 
+
+    def hourlyCo2Emission(self, date_start: datetime, date_end: datetime,) -> dict[datetime, float]:
+        ''' Return CO2 emissions for all MPID's active for the current account (in kg) for the given dates.
+        The data usually has two to three days of delay, which is a limitation of the regulatory authorities.
+        Warning: dates are assumed UTC'''
+
+        api_date_format = '%Y-%m-%dT%H:%M:%SZ'
+
+        params = [date_start.strftime(api_date_format), date_end.strftime(api_date_format)]
+        r = self._execute('co.getbarry.api.v1.OpenApiController.getHourlyCo2Emission', params)
+
+        ret = {}
+        for val in r:
+            sdate = val['dateTime']
+            sdate = sdate.replace("Z", "+00:00")  # fromisofromat doesn't know about Z
+            date = datetime.fromisoformat(sdate)
+
+            ret[date] = val['co2InKg']
+        return ret
+
     @property
     def meteringPoints(self):
         ''' Returns the metering points linked to the contract '''
