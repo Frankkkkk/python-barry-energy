@@ -112,7 +112,7 @@ class BarryEnergyAPI:
     def now(self) -> datetime:
         ''' Return the date troncated at hour'''
         now = datetime.utcnow() \
-            .replace(second=0, microsecond=0, minute=0)
+            .replace(second=0, microsecond=0, minute=0, tzinfo=timezone.utc)
         return now
 
     @property
