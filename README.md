@@ -1,4 +1,8 @@
 # python-barry-energy - ⚡
+
+**🚨🚨  This library is no more. As barry energy closed doors, this library is thus archived**
+
+
 This simple python package is an interface to [Barry Energy's API](https://developer.barry.energy/)
 
 Please note that this lib is unofficial and NOT related to Barry Energy.
